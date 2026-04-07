@@ -1,0 +1,190 @@
+:: loading settings :: url = jar:file:/opt/anaconda3/lib/python3.12/site-packages/pyspark/jars/ivy-2.5.1.jar!/org/apache/ivy/core/settings/ivysettings.xml
+Ivy Default Cache set to: /Users/ronithjuluri/.ivy2/cache
+The jars for the packages stored in: /Users/ronithjuluri/.ivy2/jars
+io.delta#delta-spark_2.12 added as a dependency
+:: resolving dependencies :: org.apache.spark#spark-submit-parent-cc60cca5-a908-44ac-b880-779f7cbd7172;1.0
+	confs: [default]
+	found io.delta#delta-spark_2.12;3.2.0 in central
+	found io.delta#delta-storage;3.2.0 in central
+	found org.antlr#antlr4-runtime;4.9.3 in central
+:: resolution report :: resolve 66ms :: artifacts dl 2ms
+	:: modules in use:
+	io.delta#delta-spark_2.12;3.2.0 from central in [default]
+	io.delta#delta-storage;3.2.0 from central in [default]
+	org.antlr#antlr4-runtime;4.9.3 from central in [default]
+	---------------------------------------------------------------------
+	|                  |            modules            ||   artifacts   |
+	|       conf       | number| search|dwnlded|evicted|| number|dwnlded|
+	---------------------------------------------------------------------
+	|      default     |   3   |   0   |   0   |   0   ||   3   |   0   |
+	---------------------------------------------------------------------
+:: retrieving :: org.apache.spark#spark-submit-parent-cc60cca5-a908-44ac-b880-779f7cbd7172
+	confs: [default]
+	0 artifacts copied, 3 already retrieved (0kB/2ms)
+26/04/07 16:58:49 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/04/07 16:58:55 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+============================================================
+  FINOPS MULTI-CLOUD COST DATA MART — LOCAL PIPELINE RUN
+============================================================
+
+[Step 1/5] Generating synthetic billing data...
+[AWS] Generated 5000 rows → data/raw/aws/aws_billing.csv
+[GCP] Generated 5000 rows → data/raw/gcp/gcp_billing.csv
+  Done in 0.2s
+
+[Step 2/5] Starting PySpark and normalizing billing data...
+  (First run downloads Delta Lake JARs — may take 1-2 min)
+[AWS Transform] Reading from data/raw/aws/aws_billing.csv
+[AWS Transform] Raw rows: 5,000
+[AWS Transform] Output rows: 5,000
+[GCP Transform] Reading from data/raw/gcp/gcp_billing.csv
+[GCP Transform] Raw rows: 5,000
+[GCP Transform] Output rows: 5,000
+  Combined rows: 10,000  |  Done in 3.9s
+
+[Step 3/5] Building dimension tables...
+[Dimensions] Building dim_date...
+[Dimensions] dim_date: 366 rows
+[Dimensions] Building dim_service...
+[Dimensions] dim_service: 28 rows
+[Dimensions] Building dim_account...
+[Dimensions] dim_account: 10 rows
+[Dimensions] Building dim_region...
+[Dimensions] dim_region: 16 rows
+  Done in 1.5s
+
+[Step 4/5] Building fact_cloud_costs with broadcast joins + caching...
+[Fact] Building fact_cloud_costs...
+[Fact] fact_cloud_costs: 10,000 rows (cached)
+  Done in 0.6s
+
+[Step 5/5] Writing Delta Lake tables to data/processed/...
+[Write] Writing fact_cloud_costs → data/processed/fact_cloud_costs
+[Write] fact_cloud_costs ✓
+[Write] Writing dim_date → data/processed/dim_date
+[Write] dim_date ✓
+[Write] Writing dim_service → data/processed/dim_service
+[Write] dim_service ✓
+[Write] Writing dim_account → data/processed/dim_account
+[Write] dim_account ✓
+[Write] Writing dim_region → data/processed/dim_region
+[Write] dim_region ✓
+
+[Write] All Delta tables written successfully.
+  Done in 5.8s
+
+============================================================
+  SAMPLE FINOPS QUERY RESULTS
+============================================================
+
+────────────────────────────────────────────────────────────
+  Total spend by cloud provider
+────────────────────────────────────────────────────────────
++--------------+--------------+--------------+
+|cloud_provider|total_cost_usd|num_line_items|
++--------------+--------------+--------------+
+|AWS           |150830.38     |5000          |
+|GCP           |149785.51     |5000          |
++--------------+--------------+--------------+
+
+
+────────────────────────────────────────────────────────────
+  Top 10 most expensive services (all clouds)
+────────────────────────────────────────────────────────────
++--------------+------------------------+----------------+--------------+
+|cloud_provider|service_name            |service_category|total_cost_usd|
++--------------+------------------------+----------------+--------------+
+|GCP           |Compute Engine          |Compute         |36654.58      |
+|AWS           |Amazon EKS              |Compute         |34766.3       |
+|AWS           |Amazon EC2              |Compute         |25832.96      |
+|GCP           |Google Kubernetes Engine|Compute         |24106.93      |
+|AWS           |Amazon SageMaker        |AI/ML           |20968.57      |
+|AWS           |Amazon Redshift         |Analytics       |18683.6       |
+|GCP           |Vertex AI               |AI/ML           |17886.27      |
+|AWS           |Amazon RDS              |Database        |15320.36      |
+|GCP           |Cloud Spanner           |Database        |14253.34      |
+|GCP           |BigQuery                |Analytics       |14237.14      |
++--------------+------------------------+----------------+--------------+
+
+
+────────────────────────────────────────────────────────────
+  Monthly cost trend (last 6 months)
+────────────────────────────────────────────────────────────
++----+-----+----------+--------------+----------------+
+|year|month|month_name|cloud_provider|monthly_cost_usd|
++----+-----+----------+--------------+----------------+
+|2024|01   |January   |AWS           |12963.91        |
+|2024|01   |January   |GCP           |10998.66        |
+|2024|02   |February  |AWS           |9899.09         |
+|2024|02   |February  |GCP           |12336.16        |
+|2024|03   |March     |AWS           |14702.2         |
+|2024|03   |March     |GCP           |14247.43        |
+|2024|04   |April     |AWS           |11484.97        |
+|2024|04   |April     |GCP           |12433.18        |
+|2024|05   |May       |AWS           |12960.37        |
+|2024|05   |May       |GCP           |12646.05        |
+|2024|06   |June      |AWS           |12861.65        |
+|2024|06   |June      |GCP           |13040.08        |
+|2024|07   |July      |AWS           |12221.67        |
+|2024|07   |July      |GCP           |12349.81        |
+|2024|08   |August    |AWS           |11847.89        |
+|2024|08   |August    |GCP           |14062.47        |
+|2024|09   |September |AWS           |11262.38        |
+|2024|09   |September |GCP           |10796.69        |
+|2024|10   |October   |AWS           |15045.23        |
+|2024|10   |October   |GCP           |10814.06        |
++----+-----+----------+--------------+----------------+
+only showing top 20 rows
+
+
+────────────────────────────────────────────────────────────
+  Cost by team and environment
+────────────────────────────────────────────────────────────
++----------------+-----------+--------------+--------------+
+|team            |environment|cloud_provider|total_cost_usd|
++----------------+-----------+--------------+--------------+
+|platform        |dev        |GCP           |33363.49      |
+|platform        |dev        |AWS           |31704.62      |
+|data-engineering|prod       |AWS           |30296.84      |
+|platform        |prod       |AWS           |30232.04      |
+|data-engineering|prod       |GCP           |30212.19      |
+|data-engineering|staging    |AWS           |30080.35      |
+|platform        |prod       |GCP           |29799.62      |
+|ml-platform     |prod       |GCP           |29475.37      |
+|ml-platform     |prod       |AWS           |28516.54      |
+|data-engineering|staging    |GCP           |26934.84      |
++----------------+-----------+--------------+--------------+
+
+
+────────────────────────────────────────────────────────────
+  Cost by geography (US vs EU vs APAC)
+────────────────────────────────────────────────────────────
++---------+--------------+--------------+----------------------+
+|geography|cloud_provider|total_cost_usd|avg_cost_per_line_item|
++---------+--------------+--------------+----------------------+
+|US       |GCP           |76396.92      |30.1845               |
+|US       |AWS           |75151.63      |30.2665               |
+|APAC     |AWS           |38766.5       |31.7498               |
+|APAC     |GCP           |37266.75      |29.742                |
+|EU       |AWS           |36912.25      |28.4817               |
+|EU       |GCP           |36121.85      |29.7055               |
++---------+--------------+--------------+----------------------+
+
+
+============================================================
+  PIPELINE COMPLETE
+============================================================
+  Total run time     : 14.9s
+  Combined input rows: 10,000
+  Delta tables written:
+    fact_cloud_costs          10,000 rows
+    dim_date                     366 rows
+    dim_service                   28 rows
+    dim_account                   10 rows
+    dim_region                    16 rows
+
+  data/processed/  ← your Delta Lake data mart is here
+  Run: pytest tests/ -v  ← to run unit tests
+============================================================
