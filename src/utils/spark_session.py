@@ -1,9 +1,11 @@
-"""
-spark_session.py
-----------------
-Shared SparkSession factory for local development.
-On Databricks, replace this with: spark = SparkSession.builder.getOrCreate()
-"""
+import sys
+import os
+
+# Force Spark workers to use the exact same Python binary as the driver.
+# Without this, Spark spawns workers using the system default Python,
+# which may be a different version (e.g. 3.14 system vs 3.12 Anaconda).
+os.environ["PYSPARK_PYTHON"] = sys.executable
+os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
 
 from pyspark.sql import SparkSession
 
@@ -11,14 +13,10 @@ from pyspark.sql import SparkSession
 def get_spark(app_name: str = "FinOps-DataMart") -> SparkSession:
     """
     Creates (or reuses) a local SparkSession with Delta Lake support.
-
-    Delta Lake is configured via the spark.jars.packages setting, which
-    automatically downloads the Delta JAR on first run. Subsequent runs
-    use the cached JAR from ~/.ivy2/cache.
     """
     spark = (
         SparkSession.builder.appName(app_name)
-        .master("local[*]")  # use all available CPU cores locally
+        .master("local[*]")
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config(
             "spark.sql.catalog.spark_catalog",
@@ -28,13 +26,9 @@ def get_spark(app_name: str = "FinOps-DataMart") -> SparkSession:
             "spark.jars.packages",
             "io.delta:delta-spark_2.12:3.2.0",
         )
-        # Performance tuning: use all cores for shuffle partitions
         .config("spark.sql.shuffle.partitions", "8")
-        # Disable noisy Spark UI for local runs
         .config("spark.ui.showConsoleProgress", "false")
         .getOrCreate()
     )
-
-    # Suppress verbose INFO logs — only show WARN and above
     spark.sparkContext.setLogLevel("WARN")
     return spark
